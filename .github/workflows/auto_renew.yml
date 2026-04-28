@@ -18,11 +18,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install requests
 
       - name: Run auto renew script
         env:
-          EMAIL: ${{ secrets.EMAIL }}
-          PASSWORD: ${{ secrets.PASSWORD }}
+          API_KEY: ${{ secrets.API_KEY }}
         run: python auto_renew.py
-
