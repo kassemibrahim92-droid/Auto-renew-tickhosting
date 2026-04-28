@@ -21,7 +21,7 @@ def get_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(options=options, use_subprocess=True)
     return driver
 
 def login(driver):
