@@ -17,10 +17,18 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Chrome
+      - name: Install Chrome 147
         run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+          wget -q https://storage.googleapis.com/chrome-for-testing-public/147.0.7727.0/linux64/chrome-linux64.zip
+          unzip chrome-linux64.zip
+          sudo mv chrome-linux64 /opt/chrome
+          sudo ln -sf /opt/chrome/chrome /usr/bin/google-chrome
+          wget -q https://storage.googleapis.com/chrome-for-testing-public/147.0.7727.0/linux64/chromedriver-linux64.zip
+          unzip chromedriver-linux64.zip
+          sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
+          sudo chmod +x /usr/bin/chromedriver
+          google-chrome --version
+          chromedriver --version
 
       - name: Install dependencies
         run: pip install -r requirements.txt
