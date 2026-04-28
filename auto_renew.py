@@ -1,9 +1,8 @@
 import os
 import time
 import logging
-from selenium import webdriver
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
@@ -17,33 +16,28 @@ LOGIN_URL = "https://tickhosting.com/auth/login"
 SERVERS_URL = "https://tickhosting.com/freeservers"
 
 def get_driver():
-    options = Options()
-    options.add_argument("--headless")
+    options = uc.ChromeOptions()
+    options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option("useAutomationExtension", False)
-    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    driver = webdriver.Chrome(options=options)
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    options.add_argument("--window-size=1920,1080")
+    driver = uc.Chrome(options=options)
     return driver
 
 def login(driver):
     logger.info("Navigating to login page...")
     driver.get(LOGIN_URL)
-    wait = WebDriverWait(driver, 20)
+    wait = WebDriverWait(driver, 30)
 
-    # Wait for page to fully load
-    time.sleep(3)
+    time.sleep(5)
+    logger.info(f"Page title: {driver.title}")
+    logger.info(f"Current URL: {driver.current_url}")
 
-    # Try to find email field by various selectors
     email_selectors = [
         (By.NAME, "email"),
         (By.ID, "email"),
         (By.CSS_SELECTOR, "input[type='email']"),
         (By.CSS_SELECTOR, "input[placeholder*='email' i]"),
-        (By.CSS_SELECTOR, "input[placeholder*='Email' i]"),
     ]
 
     email_field = None
@@ -57,21 +51,18 @@ def login(driver):
 
     if not email_field:
         logger.error("Could not find email input field")
-        logger.info(f"Page source snippet: {driver.page_source[:2000]}")
+        logger.info(f"Page source snippet: {driver.page_source[:3000]}")
         return False
 
-    # Fill in email first
     email_field.clear()
     email_field.send_keys(EMAIL)
-    time.sleep(2)  # Wait for password field to appear dynamically
+    time.sleep(2)
 
-    # Find password field after email is entered
     password_selectors = [
         (By.NAME, "password"),
         (By.ID, "password"),
         (By.CSS_SELECTOR, "input[type='password']"),
         (By.CSS_SELECTOR, "input[placeholder*='password' i]"),
-        (By.CSS_SELECTOR, "input[placeholder*='Password' i]"),
     ]
 
     password_field = None
@@ -87,14 +78,13 @@ def login(driver):
 
     if not password_field:
         logger.error("Could not find password input field")
-        logger.info(f"Page source snippet: {driver.page_source[:2000]}")
+        logger.info(f"Page source snippet: {driver.page_source[:3000]}")
         return False
 
     password_field.clear()
     password_field.send_keys(PASSWORD)
     time.sleep(0.5)
 
-    # Find and click submit button
     submit_selectors = [
         (By.CSS_SELECTOR, "button[type='submit']"),
         (By.XPATH, "//button[contains(text(), 'Login')]"),
@@ -117,13 +107,13 @@ def login(driver):
         logger.error("Could not find submit button")
         return False
 
-    # Wait for redirect after login
     time.sleep(5)
     current_url = driver.current_url
     logger.info(f"After login, URL is: {current_url}")
 
     if "login" in current_url:
         logger.error("Still on login page - credentials may be wrong")
+        logger.info(f"Page source snippet: {driver.page_source[:2000]}")
         return False
 
     logger.info("Login successful!")
@@ -137,7 +127,6 @@ def renew_servers(driver):
     renewed = 0
     failed = 0
 
-    # Look for renew buttons
     renew_selectors = [
         (By.XPATH, "//button[contains(text(), 'Renew')]"),
         (By.XPATH, "//a[contains(text(), 'Renew')]"),
@@ -161,7 +150,6 @@ def renew_servers(driver):
         logger.warning("No renew buttons found - server may not need renewal yet or selectors changed")
         logger.info(f"Page title: {driver.title}")
         logger.info(f"Current URL: {driver.current_url}")
-        # Log a snippet of the page to help debug
         logger.info(f"Page source snippet: {driver.page_source[:3000]}")
         return 0, 0
 
@@ -173,7 +161,6 @@ def renew_servers(driver):
             logger.info(f"Clicked renew button {i+1}")
             time.sleep(2)
 
-            # Check for confirmation dialog
             try:
                 confirm = WebDriverWait(driver, 5).until(
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Confirm') or contains(text(), 'Yes') or contains(text(), 'OK')]"))
@@ -182,7 +169,7 @@ def renew_servers(driver):
                 logger.info("Confirmed renewal dialog")
                 time.sleep(2)
             except TimeoutException:
-                pass  # No confirmation dialog needed
+                pass
 
             renewed += 1
             logger.info(f"Server {i+1} renewed successfully!")
