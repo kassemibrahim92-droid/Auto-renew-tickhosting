@@ -60,30 +60,36 @@ def login(driver):
         logger.info(f"Page source snippet: {driver.page_source[:2000]}")
         return False
 
-    # Find password field
+    # Fill in email first
+    email_field.clear()
+    email_field.send_keys(EMAIL)
+    time.sleep(2)  # Wait for password field to appear dynamically
+
+    # Find password field after email is entered
     password_selectors = [
         (By.NAME, "password"),
         (By.ID, "password"),
         (By.CSS_SELECTOR, "input[type='password']"),
+        (By.CSS_SELECTOR, "input[placeholder*='password' i]"),
+        (By.CSS_SELECTOR, "input[placeholder*='Password' i]"),
     ]
 
     password_field = None
     for by, selector in password_selectors:
         try:
-            password_field = driver.find_element(by, selector)
+            password_field = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((by, selector))
+            )
             logger.info(f"Found password field with selector: {selector}")
             break
-        except NoSuchElementException:
+        except TimeoutException:
             continue
 
     if not password_field:
         logger.error("Could not find password input field")
+        logger.info(f"Page source snippet: {driver.page_source[:2000]}")
         return False
 
-    # Fill in credentials
-    email_field.clear()
-    email_field.send_keys(EMAIL)
-    time.sleep(0.5)
     password_field.clear()
     password_field.send_keys(PASSWORD)
     time.sleep(0.5)
